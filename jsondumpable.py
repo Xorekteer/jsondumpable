@@ -70,6 +70,10 @@ class JSONDumpable():
     @classmethod
     def dump_to_json_file(cls):
         """ Write all current Repeater jobs to a repfile.json """
+        # Error checking: var_str_list has to be defined:
+        if cls.var_str_list == None:
+            raise ValueError("var_str_list not defined")
+        # Open file and dump:
         with open(cls.dump_file, "w") as file:
             json.dump(cls.__get_dumpable_list(), file, indent=2)
 
@@ -77,7 +81,29 @@ class JSONDumpable():
 
     @classmethod
     def quickload_vars(cls, new_obj, obj_in_json):
-        # Error checking: quicload_var_str_list has to be a subset of var_str_list
+        """Quickload variables from JSONDumpable.quickload_var_str_list into a new object.
+
+        Usage:
+        with open(JSONDumpable.dump_file, 'r') as file:
+            objs = json.load(file)
+            for obj in objs:
+                new_obj = cls()
+                JSONDumpable.quickload_vars(new_obj, obj)
+                # REST OF LOADING/INIT HERE
+
+        Arguments:
+            new_obj {Class}    -- new instance of the class that we're configuring 
+            obj_in_json {dict} -- single object in objects loaded from JSON dump
+
+
+        Raises:
+            ValueError: if quickload tries to load a variable that
+                        wouldn't be written by dump_to_json_file
+        """
+        # Error checking: quickload_var_str_list not defined:
+        if cls.quickload_var_str_list == None:
+            raise ValueError("quickload_var_str_list not defined")
+        # Error checking: quickload_var_str_list has to be a subset of var_str_list
         if cls.quickload_is_subset == None:     # never been checked
             for q_var in cls.quickload_var_str_list:
                 if q_var not in cls.var_str_list:
