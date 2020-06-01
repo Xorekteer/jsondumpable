@@ -11,6 +11,13 @@ class JSONDumpable():
         -- Set of variables to be dumped
             -- SUBCLASS VARIABLE: Set in subclass before running
             -- no default, error if not set
+    cls.quickload_var_str_list
+        -- Set of variables to be loaded w/o special methods
+            -- SUBCLASS VARIABLE: Set in subclass before running
+                -- no default
+                -- optional
+            -- Use only for simple types, use special methods for others
+                -- e.g.: write a Datetime using strftime and load w/ strptime
     cls.dump_file 
         -- Filename of file to be dumpled
             -- SUBCLASS VARIABLE: Set in subclass before running
@@ -23,6 +30,10 @@ class JSONDumpable():
     
     # Class variable list of strings
     var_str_list=None
+    quickload_var_str_list=None
+    quickload_is_subset=None    #None if quickload_var_str_list and var_str_list haven't been compared yet
+                                #True otherwise
+                                #Never False: we'll throw an error if the comparison fails
 
     # Dump file name
     dump_file = "classdump.json"
@@ -64,12 +75,46 @@ class JSONDumpable():
 
 
 
+    @classmethod
+    def quickload_vars(cls, new_obj, obj_in_json):
+        # Error checking: quicload_var_str_list has to be a subset of var_str_list
+        if cls.quickload_is_subset == None:     # never been checked
+            for q_var in cls.quickload_var_str_list:
+                if q_var not in cls.var_str_list:
+                    raise ValueError(
+                        "quickload_var_str-list is not a subset of var_str_list\n" + 
+                        "tried to load a variable not in the JSON dump")
+            cls.quickload_is_subset = True      # passed check
+        # Now quickload into new_obj:
+        for quickload_var in cls.quickload_var_str_list:
+            exec("new_obj." + quickload_var + " = obj_in_json['"+ quickload_var +"']")
+
+
+         
+
+
+
 def test():
-    inst = JSONDumpable()
-    inst.var1 = 15
-    inst.var2 = 'foo'
+    inst = JSONDumpable()       #make instance
+    inst.var1 = 15              #some variable
+    inst.var2 = 'foo'           #some variable
     JSONDumpable.var_str_list = ['var1', 'var2']
-    return JSONDumpable._JSONDumpable__get_dumpable_list()
+    JSONDumpable.quickload_var_str_list = ['var1', 'var2']
+    JSONDumpable.dump_to_json_file()
+    del inst                        #get rid of instance
+    JSONDumpable.current_jobs = []  #reset current jobs (idk I think it would happen anyway)
+    # Reload instance and print variables
+    # Shows that quickload works
+    with open(JSONDumpable.dump_file, 'r') as dump:
+        objs = json.load(dump)
+        for obj in objs:
+            new_obj = JSONDumpable()
+            JSONDumpable.quickload_vars(new_obj, obj)
+    print(JSONDumpable.current_jobs)
+    print(JSONDumpable.current_jobs[0].var1)
+    print(JSONDumpable.current_jobs[0].var2)
+    
+
 
 
 
